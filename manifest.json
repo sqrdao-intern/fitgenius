@@ -1,0 +1,19 @@
+
+{
+  "name": "FitGenius AI",
+  "short_name": "FitGenius",
+  "description": "AI-Powered Personal Training Curriculum and Progress Tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://unpkg.com/lucide-static@0.344.0/icons/activity.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
