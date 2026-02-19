@@ -1,3 +1,4 @@
+
 export enum Gender {
   Male = 'Male',
   Female = 'Female',
@@ -73,6 +74,7 @@ export interface WorkoutCurriculum {
   description: string;
   weeks: WeeklyPlan[];
   nutritionTips: string[];
+  startDate?: string;
 }
 
 export interface ProgressEntry {

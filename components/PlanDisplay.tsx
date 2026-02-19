@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { WorkoutCurriculum, ProgressEntry, WorkoutLog } from '../types';
 import { generateExerciseVisualization } from '../services/geminiService';
@@ -30,7 +31,9 @@ import {
   Circle,
   MessageSquare,
   Sparkles,
-  GripVertical
+  GripVertical,
+  Share2,
+  BarChart3
 } from 'lucide-react';
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -46,6 +49,15 @@ interface PlanDisplayProps {
   onAddProgress: (entry: ProgressEntry) => void;
   workoutLogs: WorkoutLog[];
   onLogWorkout: (log: WorkoutLog) => void;
+}
+
+interface WorkoutSummaryData {
+  dayName: string;
+  focus: string;
+  duration: string;
+  exercisesCount: number;
+  weightLogged?: number;
+  notes?: string;
 }
 
 const VISUALS_STORAGE_KEY = 'fitgenius_visuals';
@@ -82,10 +94,16 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
   const [activeWeek, setActiveWeek] = useState<number>(0);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
+  
+  // Log Modal State
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completingDayId, setCompletingDayId] = useState<string | null>(null);
   const [logWeight, setLogWeight] = useState<string>('');
   const [workoutNotes, setWorkoutNotes] = useState<string>('');
+  
+  // Summary Screen State
+  const [workoutSummary, setWorkoutSummary] = useState<WorkoutSummaryData | null>(null);
+
   const [timer, setTimer] = useState<{
     isActive: boolean;
     remaining: number;
@@ -194,13 +212,25 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
 
       onToggleDayComplete(completingDayId);
       
-      if (includeWeight && logWeight) {
+      const weightVal = includeWeight && logWeight ? parseFloat(logWeight) : undefined;
+      
+      if (weightVal) {
         onAddProgress({
           date: new Date().toISOString().split('T')[0],
-          weight: parseFloat(logWeight)
+          weight: weightVal
         });
       }
       
+      // Set summary data before clearing modal
+      setWorkoutSummary({
+        dayName: dayData.dayName,
+        focus: dayData.focus,
+        duration: dayData.estimatedDuration,
+        exercisesCount: dayData.exercises.length,
+        weightLogged: weightVal,
+        notes: workoutNotes
+      });
+
       setShowCompletionModal(false);
       setCompletingDayId(null);
     }
@@ -222,11 +252,10 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
   const handleDragStart = (e: React.DragEvent, weekIdx: number, dayIdx: number, exIdx: number) => {
     setDraggedItem({ weekIdx, dayIdx, exIdx });
     e.dataTransfer.effectAllowed = 'move';
-    // Transparent ghost image logic could go here if needed, but default is usually fine
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault(); 
     e.dataTransfer.dropEffect = 'move';
   };
 
@@ -235,7 +264,6 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
     
     if (!draggedItem) return;
     
-    // Only allow reordering within the same day for simplicity
     if (draggedItem.weekIdx !== targetWeekIdx || draggedItem.dayIdx !== targetDayIdx) {
       setDraggedItem(null);
       return;
@@ -246,17 +274,21 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
       return;
     }
 
-    // Clone the plan to mutate
     const newPlan = JSON.parse(JSON.stringify(plan));
     const dayExercises = newPlan.weeks[targetWeekIdx].schedule[targetDayIdx].exercises;
     
-    // Remove from old index
     const [movedItem] = dayExercises.splice(draggedItem.exIdx, 1);
-    // Insert at new index
     dayExercises.splice(targetExIdx, 0, movedItem);
 
     onUpdatePlan(newPlan);
     setDraggedItem(null);
+  };
+
+  const getDayDate = (weekIdx: number, dayIdx: number) => {
+    if (!plan.startDate) return null;
+    const date = new Date(plan.startDate);
+    date.setDate(date.getDate() + (weekIdx * 7) + dayIdx);
+    return date;
   };
 
   const chartData = plan.weeks.map((week, index) => ({
@@ -364,17 +396,26 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
               
               const isWeekComplete = weekWorkoutIds.length > 0 && weekWorkoutIds.every(id => completedDays.includes(id));
               
+              const weekStartDate = getDayDate(idx, 0);
+              const weekEndDate = getDayDate(idx, 6);
+              const dateRange = weekStartDate && weekEndDate 
+                 ? `${weekStartDate.toLocaleDateString(undefined, {month:'short', day:'numeric'})} - ${weekEndDate.toLocaleDateString(undefined, {month:'short', day:'numeric'})}`
+                 : '';
+
               return (
               <button
                 key={week.weekNumber}
                 onClick={() => setActiveWeek(idx)}
-                className={`px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-2 border ${
                   activeWeek === idx 
-                  ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' 
-                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                  ? 'bg-emerald-500 border-emerald-500 text-black shadow-lg shadow-emerald-500/20' 
+                  : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
                 }`}
               >
-                Week {week.weekNumber}
+                <div className="flex flex-col items-start">
+                   <span className="leading-none">Week {week.weekNumber}</span>
+                   {dateRange && <span className={`text-[10px] font-normal leading-none mt-1 opacity-70`}>{dateRange}</span>}
+                </div>
                 {isWeekComplete && <CheckCircle2 className={`w-3 h-3 ${activeWeek === idx ? 'text-black' : 'text-emerald-500'}`} />}
               </button>
             )})}
@@ -394,6 +435,10 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
               const dayExerciseIds = day.exercises.map((_, exIdx) => `${dayKey}-ex${exIdx}`);
               const dayCompletedExCount = dayExerciseIds.filter(id => completedExercises.includes(id)).length;
               const dayProgress = day.exercises.length > 0 ? (dayCompletedExCount / day.exercises.length) * 100 : 0;
+              
+              const calendarDate = getDayDate(activeWeek, dayIdx);
+              const isToday = calendarDate && new Date().toDateString() === calendarDate.toDateString();
+              const isPast = calendarDate && calendarDate < new Date() && !isToday;
 
               return (
                 <div 
@@ -403,7 +448,9 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                       ? 'bg-zinc-900/30 border-zinc-800/30 opacity-60' 
                       : isCompleted
                         ? 'bg-emerald-950/20 border-emerald-900/50' 
-                        : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                        : isToday 
+                           ? 'bg-zinc-900 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                           : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
                   }`}
                 >
                   <div 
@@ -411,20 +458,28 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                     className={`p-5 flex items-center justify-between cursor-pointer select-none ${isRestDay ? 'cursor-default' : ''}`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg relative transition-all ${
+                      <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center font-bold border relative transition-all ${
                         isRestDay 
-                          ? 'bg-zinc-800 text-zinc-500' 
+                          ? 'bg-zinc-800 border-zinc-700 text-zinc-500' 
                           : isCompleted 
-                            ? 'bg-emerald-500 text-black' 
-                            : 'bg-emerald-500/10 text-emerald-500'
+                            ? 'bg-emerald-500 border-emerald-500 text-black' 
+                            : isToday
+                              ? 'bg-emerald-500/20 border-emerald-500 text-emerald-500'
+                              : 'bg-zinc-800 border-zinc-700 text-zinc-400'
                       }`}>
-                        {isCompleted ? <Check className="w-6 h-6" /> : day.dayName.substring(0, 3)}
+                        {calendarDate && (
+                           <>
+                              <span className="text-[10px] uppercase tracking-wider opacity-80">{day.dayName.substring(0, 3)}</span>
+                              <span className="text-xl leading-none">{calendarDate.getDate()}</span>
+                           </>
+                        )}
                       </div>
                       
                       <div>
-                        <h4 className={`font-semibold flex items-center gap-2 ${isRestDay ? 'text-zinc-500' : isCompleted ? 'text-emerald-400' : 'text-white'}`}>
+                        <h4 className={`font-semibold flex items-center gap-2 ${isRestDay ? 'text-zinc-500' : isCompleted ? 'text-emerald-400' : isToday ? 'text-white' : 'text-zinc-300'}`}>
                           {day.dayName}
                           {isCompleted && <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Complete</span>}
+                          {isToday && !isCompleted && !isRestDay && <span className="text-xs px-2 py-0.5 rounded bg-emerald-500 text-black font-bold">Today</span>}
                         </h4>
                         <p className="text-sm text-zinc-400">{day.focus}</p>
                       </div>
@@ -725,6 +780,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
         </div>
       </div>
 
+      {/* Completion Input Modal */}
       {showCompletionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-md w-full shadow-2xl scale-100 animate-in fade-in zoom-in duration-200">
@@ -774,6 +830,65 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <button onClick={() => confirmCompletion(false)} className="px-4 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium text-sm">Cancel</button>
               <button onClick={() => confirmCompletion(true)} className="px-4 py-3 rounded-xl bg-emerald-500 text-black font-bold text-sm flex items-center justify-center gap-2">Log & Finish <ArrowRight className="w-4 h-4" /></button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Workout Summary Overlay */}
+      {workoutSummary && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 relative">
+            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-emerald-500/20 to-transparent pointer-events-none" />
+            
+            <div className="p-8 relative z-10 text-center">
+              <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+                <Trophy className="w-10 h-10 text-black fill-black" />
+              </div>
+              
+              <h2 className="text-3xl font-extrabold text-white mb-2">Workout Crushed!</h2>
+              <p className="text-zinc-400 mb-8">You're getting stronger every day.</p>
+              
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 mb-6 text-left">
+                 <h3 className="font-bold text-white text-lg mb-1">{workoutSummary.dayName}</h3>
+                 <p className="text-zinc-500 text-sm mb-4 uppercase tracking-wider font-semibold">{workoutSummary.focus}</p>
+                 
+                 <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-black/40 rounded-lg p-3 border border-zinc-800/50">
+                       <Clock className="w-4 h-4 text-emerald-500 mb-2" />
+                       <div className="text-lg font-bold text-white leading-none">{workoutSummary.duration}</div>
+                       <div className="text-[10px] text-zinc-500 mt-1">Duration</div>
+                    </div>
+                    <div className="bg-black/40 rounded-lg p-3 border border-zinc-800/50">
+                       <Dumbbell className="w-4 h-4 text-blue-500 mb-2" />
+                       <div className="text-lg font-bold text-white leading-none">{workoutSummary.exercisesCount}</div>
+                       <div className="text-[10px] text-zinc-500 mt-1">Exercises</div>
+                    </div>
+                    <div className="bg-black/40 rounded-lg p-3 border border-zinc-800/50">
+                       <Scale className="w-4 h-4 text-orange-500 mb-2" />
+                       <div className="text-lg font-bold text-white leading-none">
+                         {workoutSummary.weightLogged ? workoutSummary.weightLogged : '--'}
+                       </div>
+                       <div className="text-[10px] text-zinc-500 mt-1">Kg Logged</div>
+                    </div>
+                 </div>
+              </div>
+
+              {workoutSummary.notes && (
+                <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-4 mb-8 text-left">
+                   <div className="flex items-center gap-2 text-zinc-500 mb-2 text-xs uppercase font-bold tracking-wider">
+                      <MessageSquare className="w-3 h-3" /> Coach's Notes Log
+                   </div>
+                   <p className="text-zinc-300 text-sm italic">"{workoutSummary.notes}"</p>
+                </div>
+              )}
+
+              <button 
+                onClick={() => setWorkoutSummary(null)}
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)]"
+              >
+                Back to Dashboard
+              </button>
             </div>
           </div>
         </div>

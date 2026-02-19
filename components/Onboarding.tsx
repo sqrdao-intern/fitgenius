@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Gender, Goal, ExperienceLevel, Equipment } from '../types';
-import { ChevronRight, ChevronLeft, Activity, Target, Dumbbell, Calendar } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Activity, Target, Dumbbell, Calendar, ChevronDown } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => void;
@@ -115,13 +115,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
               </div>
               <div>
                 <label className="block text-sm font-medium text-zinc-400 mb-1">Gender</label>
-                <select 
-                  value={profile.gender}
-                  onChange={(e) => updateProfile('gender', e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                >
-                  {Object.values(Gender).map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
+                <div className="relative">
+                  <select 
+                    value={profile.gender}
+                    onChange={(e) => updateProfile('gender', e.target.value)}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none pr-10"
+                  >
+                    {Object.values(Gender).map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-zinc-400 mb-1">Height (cm)</label>

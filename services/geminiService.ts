@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { UserProfile, WorkoutCurriculum } from "../types";
 
@@ -30,7 +31,12 @@ export const generateWorkoutPlan = async (profile: UserProfile): Promise<Workout
     - Physical Limitations/Injuries: ${profile.injuries || "None"}
 
     The plan should be progressive, meaning it gets slightly harder or changes focus over the 4 weeks.
-    Ensure rest days are included explicitly.
+    
+    CRITICAL SCHEDULING RULE:
+    Each week MUST have exactly 7 days, starting with Monday and ending with Sunday.
+    You must assign workouts to specific days based on the user's commitment level (e.g. if 3 days/week, pick Mon/Wed/Fri or similar).
+    Mark non-workout days as "Rest" or "Active Recovery".
+    
     Include 3-5 concise nutrition tips specific to their goal.
     For each exercise, provide a concise "instructions" field (max 30 words) describing the main form cue and execution.
     Optionally provide a "videoUrl" if you can suggest a specific tutorial link (like a YouTube search link for that exercise).
@@ -63,7 +69,7 @@ export const generateWorkoutPlan = async (profile: UserProfile): Promise<Workout
                     items: {
                       type: Type.OBJECT,
                       properties: {
-                        dayName: { type: Type.STRING, description: "e.g. Monday" },
+                        dayName: { type: Type.STRING, description: "Must be Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, or Sunday" },
                         focus: { type: Type.STRING, description: "e.g. Legs & Core or Rest" },
                         estimatedDuration: { type: Type.STRING },
                         exercises: {

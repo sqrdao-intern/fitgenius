@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserProfile, WorkoutCurriculum, ProgressEntry, WorkoutLog } from './types';
 import { generateWorkoutPlan } from './services/geminiService';
@@ -112,7 +113,24 @@ const App: React.FC = () => {
     setError(null);
     try {
       const generatedPlan = await generateWorkoutPlan(userProfile);
-      setPlan(generatedPlan);
+      
+      // Calculate Monday of the NEXT week (fresh start)
+      const now = new Date();
+      const day = now.getDay();
+      // Calculate diff to Monday of current week
+      const diffToCurrentMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+      
+      // Set to Monday of next week (Current Monday + 7 days)
+      const nextMonday = new Date(now);
+      nextMonday.setDate(diffToCurrentMonday + 7);
+      nextMonday.setHours(0, 0, 0, 0);
+
+      const planWithDate: WorkoutCurriculum = {
+        ...generatedPlan,
+        startDate: nextMonday.toISOString()
+      };
+
+      setPlan(planWithDate);
       setCompletedDays([]);
       setCompletedExercises([]);
       setWorkoutLogs([]);
