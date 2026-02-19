@@ -30,7 +30,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
     injuries: ''
   });
 
-  // Load initial profile if provided
   useEffect(() => {
     if (initialProfile) {
       setProfile(initialProfile);
@@ -58,15 +57,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
   const toggleEquipment = (item: Equipment) => {
     setProfile(prev => {
       const current = prev.equipment;
-      if (current.includes(item)) {
-        // Don't allow empty equipment selection, default to None if unselecting last
-        if (current.length === 1) return prev;
-        return { ...prev, equipment: current.filter(i => i !== item) };
-      } else {
-        // If selecting specific equipment, remove 'None' if it exists, or just add
-        const filtered = current.filter(i => i !== Equipment.None);
-        return { ...prev, equipment: [...filtered, item] };
+      if (item === Equipment.None) {
+        return { ...prev, equipment: [Equipment.None] };
       }
+      
+      const isSelected = current.includes(item);
+      let nextEquipment: Equipment[];
+      
+      if (isSelected) {
+        nextEquipment = current.filter(i => i !== item);
+        if (nextEquipment.length === 0) nextEquipment = [Equipment.None];
+      } else {
+        nextEquipment = [...current.filter(i => i !== Equipment.None), item];
+      }
+      
+      return { ...prev, equipment: nextEquipment };
     });
   };
 
@@ -91,7 +96,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
       </div>
 
       {/* Content */}
-      <div className="p-8 min-h-[400px]">
+      <div className="p-8 min-h-[450px]">
         {currentStep === 1 && (
           <div className="space-y-6 animate-fadeIn">
             <h3 className="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2">
@@ -202,23 +207,23 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
               <Dumbbell className="w-5 h-5" /> Available Equipment
             </h3>
             
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {Object.values(Equipment).map(eq => (
                 <div 
                   key={eq}
                   onClick={() => toggleEquipment(eq)}
-                  className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${
+                  className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${
                     profile.equipment.includes(eq)
                     ? 'bg-emerald-500/10 border-emerald-500' 
                     : 'bg-zinc-800 border-zinc-700 hover:bg-zinc-750'
                   }`}
                 >
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center mr-4 ${
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center mr-3 shrink-0 ${
                      profile.equipment.includes(eq) ? 'bg-emerald-500 border-emerald-500' : 'border-zinc-500'
                   }`}>
-                    {profile.equipment.includes(eq) && <div className="w-2 h-2 bg-black rounded-sm" />}
+                    {profile.equipment.includes(eq) && <div className="w-1.5 h-1.5 bg-black rounded-sm" />}
                   </div>
-                  <span className={profile.equipment.includes(eq) ? 'text-white font-medium' : 'text-zinc-400'}>
+                  <span className={`text-sm ${profile.equipment.includes(eq) ? 'text-white font-medium' : 'text-zinc-400'}`}>
                     {eq}
                   </span>
                 </div>

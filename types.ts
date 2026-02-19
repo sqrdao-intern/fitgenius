@@ -20,9 +20,16 @@ export enum ExperienceLevel {
 
 export enum Equipment {
   None = 'Bodyweight Only',
-  Dumbbells = 'Dumbbells Only',
+  YogaMat = 'Yoga Mat',
+  JumpRope = 'Jump Rope',
+  Dumbbells = 'Dumbbells',
+  Kettlebell = 'Kettlebell',
   ResistanceBands = 'Resistance Bands',
-  FullHomeGym = 'Full Home Gym (Bench, Barbell, etc.)'
+  PullUpBar = 'Pull-up Bar',
+  Bench = 'Adjustable Bench',
+  FoamRoller = 'Foam Roller',
+  Barbell = 'Barbell & Plates',
+  FullHomeGym = 'Full Home Gym'
 }
 
 export interface UserProfile {

@@ -29,13 +29,15 @@ import {
   CircleCheck,
   Circle,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  GripVertical
 } from 'lucide-react';
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface PlanDisplayProps {
   plan: WorkoutCurriculum;
   onReset: () => void;
+  onUpdatePlan: (plan: WorkoutCurriculum) => void;
   completedDays: string[];
   onToggleDayComplete: (dayId: string) => void;
   completedExercises: string[];
@@ -67,6 +69,7 @@ const formatTime = (seconds: number) => {
 const PlanDisplay: React.FC<PlanDisplayProps> = ({ 
   plan, 
   onReset, 
+  onUpdatePlan,
   completedDays, 
   onToggleDayComplete,
   completedExercises,
@@ -89,6 +92,9 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
     total: number;
     label: string;
   } | null>(null);
+
+  // Drag and drop state
+  const [draggedItem, setDraggedItem] = useState<{ weekIdx: number; dayIdx: number; exIdx: number } | null>(null);
 
   const [visuals, setVisuals] = useState<Record<string, string>>(() => {
     try {
@@ -211,6 +217,47 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
   };
 
   const stopTimer = () => setTimer(null);
+
+  // DnD Handlers
+  const handleDragStart = (e: React.DragEvent, weekIdx: number, dayIdx: number, exIdx: number) => {
+    setDraggedItem({ weekIdx, dayIdx, exIdx });
+    e.dataTransfer.effectAllowed = 'move';
+    // Transparent ghost image logic could go here if needed, but default is usually fine
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault(); // Necessary to allow dropping
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetWeekIdx: number, targetDayIdx: number, targetExIdx: number) => {
+    e.preventDefault();
+    
+    if (!draggedItem) return;
+    
+    // Only allow reordering within the same day for simplicity
+    if (draggedItem.weekIdx !== targetWeekIdx || draggedItem.dayIdx !== targetDayIdx) {
+      setDraggedItem(null);
+      return;
+    }
+    
+    if (draggedItem.exIdx === targetExIdx) {
+      setDraggedItem(null);
+      return;
+    }
+
+    // Clone the plan to mutate
+    const newPlan = JSON.parse(JSON.stringify(plan));
+    const dayExercises = newPlan.weeks[targetWeekIdx].schedule[targetDayIdx].exercises;
+    
+    // Remove from old index
+    const [movedItem] = dayExercises.splice(draggedItem.exIdx, 1);
+    // Insert at new index
+    dayExercises.splice(targetExIdx, 0, movedItem);
+
+    onUpdatePlan(newPlan);
+    setDraggedItem(null);
+  };
 
   const chartData = plan.weeks.map((week, index) => ({
     name: `Week ${week.weekNumber}`,
@@ -439,94 +486,109 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                           const isVisualExpanded = expandedExercises[uniqueKey];
                           const visualUrl = visuals[ex.name];
                           const isLoadingVisual = loadingVisuals[ex.name];
+                          
+                          const isDragging = draggedItem?.weekIdx === activeWeek && draggedItem?.dayIdx === dayIdx && draggedItem?.exIdx === exIdx;
 
                           return (
                             <div 
                               key={exIdx} 
+                              draggable={!isExerciseComplete}
+                              onDragStart={(e) => handleDragStart(e, activeWeek, dayIdx, exIdx)}
+                              onDragOver={handleDragOver}
+                              onDrop={(e) => handleDrop(e, activeWeek, dayIdx, exIdx)}
                               className={`bg-zinc-950/50 rounded-lg border transition-all duration-300 overflow-hidden ${
                                 isExerciseComplete 
                                   ? 'border-emerald-900/40 bg-emerald-950/5 opacity-75' 
                                   : 'border-zinc-800/50'
-                              }`}
+                              } ${isDragging ? 'opacity-30 border-dashed border-emerald-500 scale-[0.98]' : ''}`}
                             >
                               <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-1">
-                                      <button
-                                        onClick={() => handleExerciseToggle(exerciseId)}
-                                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all border shrink-0 ${
-                                          isExerciseComplete
-                                            ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                                            : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:border-emerald-500 hover:text-emerald-500'
-                                        }`}
-                                      >
-                                        {isExerciseComplete ? <Check className="w-4 h-4" /> : (exIdx + 1)}
-                                      </button>
-                                      <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex-1 flex items-start gap-3">
+                                  {/* Drag Handle */}
+                                  {!isExerciseComplete && (
+                                    <div className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 mt-1.5">
+                                      <GripVertical className="w-4 h-4" />
+                                    </div>
+                                  )}
+
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-1">
                                         <button
-                                          onClick={() => toggleExerciseDetails(uniqueKey)}
-                                          className={`font-medium text-lg text-left transition-colors hover:text-emerald-400 outline-none ${
-                                            isExerciseComplete ? 'text-zinc-500 line-through' : 'text-white'
+                                          onClick={() => handleExerciseToggle(exerciseId)}
+                                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all border shrink-0 ${
+                                            isExerciseComplete
+                                              ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                                              : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:border-emerald-500 hover:text-emerald-500'
                                           }`}
                                         >
-                                          {ex.name}
+                                          {isExerciseComplete ? <Check className="w-4 h-4" /> : (exIdx + 1)}
                                         </button>
-                                        {isExerciseComplete && (
-                                          <span className="flex items-center gap-1 text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                                            <CircleCheck className="w-2.5 h-2.5" /> Done
-                                          </span>
-                                        )}
-                                      </div>
-                                  </div>
-                                  {ex.notes && <p className={`text-xs ml-10 mb-2 transition-colors ${
-                                    isExerciseComplete ? 'text-zinc-600' : 'text-zinc-500'
-                                  }`}>{ex.notes}</p>}
-                                  
-                                  <div className="flex flex-wrap gap-2 ml-10">
-                                    <button 
-                                      onClick={() => handleExerciseToggle(exerciseId)}
-                                      className={`text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${
-                                        isExerciseComplete 
-                                        ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' 
-                                        : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500'
-                                      }`}
-                                    >
-                                      {isExerciseComplete ? <Circle className="w-3 h-3" /> : <CircleCheck className="w-3 h-3" />}
-                                      {isExerciseComplete ? 'Incomplete' : 'Done'}
-                                    </button>
-
-                                    {!isExerciseComplete && (
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <button
+                                            onClick={() => toggleExerciseDetails(uniqueKey)}
+                                            className={`font-medium text-lg text-left transition-colors hover:text-emerald-400 outline-none ${
+                                              isExerciseComplete ? 'text-zinc-500 line-through' : 'text-white'
+                                            }`}
+                                          >
+                                            {ex.name}
+                                          </button>
+                                          {isExerciseComplete && (
+                                            <span className="flex items-center gap-1 text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                              <CircleCheck className="w-2.5 h-2.5" /> Done
+                                            </span>
+                                          )}
+                                        </div>
+                                    </div>
+                                    {ex.notes && <p className={`text-xs ml-10 mb-2 transition-colors ${
+                                      isExerciseComplete ? 'text-zinc-600' : 'text-zinc-500'
+                                    }`}>{ex.notes}</p>}
+                                    
+                                    <div className="flex flex-wrap gap-2 ml-10">
                                       <button 
-                                        onClick={() => startRestTimer(ex.rest, ex.name)}
-                                        className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-emerald-400 hover:border-emerald-500 transition-all"
+                                        onClick={() => handleExerciseToggle(exerciseId)}
+                                        className={`text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${
+                                          isExerciseComplete 
+                                          ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' 
+                                          : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500'
+                                        }`}
                                       >
-                                        <Timer className="w-3 h-3" /> Rest
+                                        {isExerciseComplete ? <Circle className="w-3 h-3" /> : <CircleCheck className="w-3 h-3" />}
+                                        {isExerciseComplete ? 'Incomplete' : 'Done'}
                                       </button>
-                                    )}
 
-                                    <button 
-                                      onClick={() => toggleExerciseDetails(uniqueKey)}
-                                      className={`text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${
-                                        isVisualExpanded 
-                                        ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' 
-                                        : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'
-                                      }`}
-                                    >
-                                      {isVisualExpanded ? <Eye className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
-                                      {isVisualExpanded ? 'Hide' : 'Details'}
-                                    </button>
+                                      {!isExerciseComplete && (
+                                        <button 
+                                          onClick={() => startRestTimer(ex.rest, ex.name)}
+                                          className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-emerald-400 hover:border-emerald-500 transition-all"
+                                        >
+                                          <Timer className="w-3 h-3" /> Rest
+                                        </button>
+                                      )}
 
-                                    {(ex.videoUrl || ex.name) && !isExerciseComplete && (
-                                      <a 
-                                        href={ex.videoUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + ' exercise tutorial')}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-blue-400 hover:border-blue-500 transition-all"
+                                      <button 
+                                        onClick={() => toggleExerciseDetails(uniqueKey)}
+                                        className={`text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${
+                                          isVisualExpanded 
+                                          ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' 
+                                          : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'
+                                        }`}
                                       >
-                                        <Video className="w-3 h-3" /> Video
-                                      </a>
-                                    )}
+                                        {isVisualExpanded ? <Eye className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
+                                        {isVisualExpanded ? 'Hide' : 'Details'}
+                                      </button>
+
+                                      {(ex.videoUrl || ex.name) && !isExerciseComplete && (
+                                        <a 
+                                          href={ex.videoUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + ' exercise tutorial')}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-blue-400 hover:border-blue-500 transition-all"
+                                        >
+                                          <Video className="w-3 h-3" /> Video
+                                        </a>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                                 

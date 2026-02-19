@@ -134,6 +134,10 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUpdatePlan = (newPlan: WorkoutCurriculum) => {
+    setPlan(newPlan);
+  };
+
   const handleToggleDayComplete = (dayId: string) => {
     const isNowComplete = !completedDays.includes(dayId);
     
@@ -265,6 +269,7 @@ const App: React.FC = () => {
           <PlanDisplay 
             plan={plan} 
             onReset={handleReset} 
+            onUpdatePlan={handleUpdatePlan}
             completedDays={completedDays}
             onToggleDayComplete={handleToggleDayComplete}
             completedExercises={completedExercises}
