@@ -1,0 +1,5 @@
+{
+  "name": "FitGenius AI",
+  "description": "A personalized home workout planner powered by Gemini AI that creates custom curriculums based on your biometrics and goals.",
+  "requestFramePermissions": []
+}
