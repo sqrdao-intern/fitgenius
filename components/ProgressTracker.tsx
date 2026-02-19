@@ -17,12 +17,11 @@ import { useLanguage } from '../contexts/LanguageContext';
 interface ProgressTrackerProps {
   entries: ProgressEntry[];
   onAddEntry: (entry: ProgressEntry) => void;
-  completedWorkoutCount: number;
   workoutLogs: WorkoutLog[];
   onLogWorkout?: (log: WorkoutLog) => void;
 }
 
-const ProgressTracker: React.FC<ProgressTrackerProps> = ({ entries, onAddEntry, completedWorkoutCount, workoutLogs, onLogWorkout }) => {
+const ProgressTracker: React.FC<ProgressTrackerProps> = ({ entries, onAddEntry, workoutLogs, onLogWorkout }) => {
   const { t, language } = useLanguage();
   const [showAddWeight, setShowAddWeight] = useState(false);
   const [showAddActivity, setShowAddActivity] = useState(false);
@@ -297,7 +296,7 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({ entries, onAddEntry, 
               <div className="grid grid-cols-2 gap-4 shrink-0">
                  <div className="bg-black/20 p-3 rounded-xl border border-white/5">
                     <p className="text-xs text-zinc-500 mb-1">{t('plan.totalWorkouts')}</p>
-                    <p className="text-xl font-bold text-white">{completedWorkoutCount + workoutLogs.filter(l => l.focus === "Custom Activity").length}</p>
+                    <p className="text-xl font-bold text-white">{workoutLogs.length}</p>
                  </div>
                  <div className="bg-black/20 p-3 rounded-xl border border-white/5">
                     <p className="text-xs text-zinc-500 mb-1">{t('tracker.weightChange')}</p>
@@ -359,7 +358,7 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({ entries, onAddEntry, 
                              </div>
                              <div>
                                 <h4 className="text-sm font-bold text-white leading-tight">{log.dayName}</h4>
-                                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">{log.focus}</p>
+                                <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider">{log.focus}</p>
                              </div>
                           </div>
                           <span className="text-[10px] text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full">

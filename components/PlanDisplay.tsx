@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { WorkoutCurriculum, ProgressEntry, WorkoutLog, Exercise, UserProfile } from '../types';
 import { generateExerciseVisualization, getExerciseAlternatives } from '../services/geminiService';
@@ -827,7 +828,6 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
           <ProgressTracker 
             entries={progressHistory} 
             onAddEntry={onAddProgress} 
-            completedWorkoutCount={completedCount}
             workoutLogs={workoutLogs}
             onLogWorkout={onLogWorkout}
           />

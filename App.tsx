@@ -138,7 +138,7 @@ const App: React.FC = () => {
       setPlan(planWithDate);
       setCompletedDays([]);
       setCompletedExercises([]);
-      setWorkoutLogs([]);
+      // Preserve workoutLogs (History)
     } catch (err: any) {
       console.error(err);
       setError(t('common.error'));
@@ -152,7 +152,7 @@ const App: React.FC = () => {
       setPlan(null);
       setCompletedDays([]);
       setCompletedExercises([]);
-      setWorkoutLogs([]);
+      // Preserve workoutLogs (History)
       setError(null);
       setShowOnboarding(false);
     }
