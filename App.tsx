@@ -209,7 +209,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-black text-white selection:bg-emerald-500/30 flex flex-col">
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]" />
@@ -233,7 +233,7 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow w-full">
         {!plan ? (
           <div className="flex flex-col items-center justify-center min-h-[70vh]">
             <div className="text-center mb-10 max-w-2xl">
@@ -281,6 +281,27 @@ const App: React.FC = () => {
           />
         )}
       </main>
+
+      <footer className="relative z-10 border-t border-white/5 bg-black/50 backdrop-blur-md py-6 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="bg-emerald-500/10 p-1.5 rounded-lg text-emerald-500">
+               <LogoIcon className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-semibold text-zinc-300">FitGenius.ai</span>
+          </div>
+          <div className="text-center md:text-right">
+            <p className="text-xs text-zinc-500">
+              © {new Date().getFullYear()} FitGenius AI. All rights reserved. 
+              <span className="hidden sm:inline mx-1">•</span> 
+              Powered by Google Gemini.
+            </p>
+            <p className="text-xs text-zinc-600 mt-1">
+              Created by <a href="https://github.com/sqrdao-intern" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-emerald-500 transition-colors">sqrdao-intern</a>
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
