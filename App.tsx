@@ -4,6 +4,7 @@ import { UserProfile, WorkoutCurriculum, ProgressEntry, WorkoutLog } from './typ
 import { generateWorkoutPlan } from './services/geminiService';
 import Onboarding from './components/Onboarding';
 import PlanDisplay from './components/PlanDisplay';
+import Landing from './components/Landing';
 import { Sparkles } from 'lucide-react';
 
 const STORAGE_KEYS = {
@@ -80,6 +81,7 @@ const App: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (profile) localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
@@ -149,6 +151,7 @@ const App: React.FC = () => {
       setCompletedExercises([]);
       setWorkoutLogs([]);
       setError(null);
+      setShowOnboarding(false);
     }
   };
 
@@ -251,21 +254,26 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow w-full">
-        {!plan ? (
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow w-full flex flex-col">
+        {plan ? (
+          <PlanDisplay 
+            plan={plan} 
+            onReset={handleReset} 
+            onUpdatePlan={handleUpdatePlan}
+            completedDays={completedDays}
+            onToggleDayComplete={handleToggleDayComplete}
+            completedExercises={completedExercises}
+            onToggleExerciseComplete={handleToggleExerciseComplete}
+            progressHistory={progressHistory}
+            onAddProgress={handleAddProgress}
+            workoutLogs={workoutLogs}
+            onLogWorkout={handleLogWorkout}
+            userProfile={profile}
+          />
+        ) : showOnboarding ? (
           <div className="flex flex-col items-center justify-center min-h-[70vh]">
-            <div className="text-center mb-10 max-w-2xl">
-              <h1 className="text-4xl sm:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-500">
-                AI-Powered <br className="hidden sm:block" />
-                Personal Training
-              </h1>
-              <p className="text-lg text-zinc-400">
-                Generate a scientific, personalized home workout curriculum in seconds based on your specific biometrics and goals.
-              </p>
-            </div>
-            
             {error && (
-               <div className="mb-6 bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-lg text-sm max-w-lg w-full text-center">
+               <div className="mb-6 bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-lg text-sm max-w-lg w-full text-center animate-fadeIn">
                  {error}
                </div>
             )}
@@ -284,20 +292,7 @@ const App: React.FC = () => {
             )}
           </div>
         ) : (
-          <PlanDisplay 
-            plan={plan} 
-            onReset={handleReset} 
-            onUpdatePlan={handleUpdatePlan}
-            completedDays={completedDays}
-            onToggleDayComplete={handleToggleDayComplete}
-            completedExercises={completedExercises}
-            onToggleExerciseComplete={handleToggleExerciseComplete}
-            progressHistory={progressHistory}
-            onAddProgress={handleAddProgress}
-            workoutLogs={workoutLogs}
-            onLogWorkout={handleLogWorkout}
-            userProfile={profile}
-          />
+          <Landing onStart={() => setShowOnboarding(true)} />
         )}
       </main>
 
