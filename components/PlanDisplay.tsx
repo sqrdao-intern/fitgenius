@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WorkoutCurriculum, ProgressEntry, WorkoutLog } from '../types';
 import { generateExerciseVisualization } from '../services/geminiService';
 import ProgressTracker from './ProgressTracker';
@@ -28,7 +28,8 @@ import {
   ListTodo,
   CircleCheck,
   Circle,
-  MessageSquare
+  MessageSquare,
+  Sparkles
 } from 'lucide-react';
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -124,19 +125,23 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
     setExpandedDay(expandedDay === dayKey ? null : dayKey);
   };
 
-  const toggleExerciseVisual = async (exerciseName: string, uniqueKey: string) => {
+  const toggleExerciseDetails = (uniqueKey: string) => {
     setExpandedExercises(prev => ({ ...prev, [uniqueKey]: !prev[uniqueKey] }));
+  };
 
-    if (!expandedExercises[uniqueKey] && !visuals[exerciseName] && !loadingVisuals[exerciseName]) {
-      setLoadingVisuals(prev => ({ ...prev, [exerciseName]: true }));
-      try {
-        const imageUrl = await generateExerciseVisualization(exerciseName);
-        if (imageUrl) setVisuals(prev => ({ ...prev, [exerciseName]: imageUrl }));
-      } catch (err) {
-        console.error("Error generating visual:", err);
-      } finally {
-        setLoadingVisuals(prev => ({ ...prev, [exerciseName]: false }));
+  const handleGenerateVisual = async (exerciseName: string) => {
+    if (loadingVisuals[exerciseName]) return;
+    
+    setLoadingVisuals(prev => ({ ...prev, [exerciseName]: true }));
+    try {
+      const imageUrl = await generateExerciseVisualization(exerciseName);
+      if (imageUrl) {
+        setVisuals(prev => ({ ...prev, [exerciseName]: imageUrl }));
       }
+    } catch (err) {
+      console.error("Error generating visual:", err);
+    } finally {
+      setLoadingVisuals(prev => ({ ...prev, [exerciseName]: false }));
     }
   };
 
@@ -171,7 +176,6 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
       const dIdx = parseInt(dStr.replace('d',''));
       const dayData = plan.weeks[wIdx].schedule[dIdx];
 
-      // Add workout log
       onLogWorkout({
         id: Math.random().toString(36).substr(2, 9),
         date: new Date().toISOString(),
@@ -460,7 +464,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                       </button>
                                       <div className="flex flex-wrap items-center gap-2">
                                         <button
-                                          onClick={() => toggleExerciseVisual(ex.name, uniqueKey)}
+                                          onClick={() => toggleExerciseDetails(uniqueKey)}
                                           className={`font-medium text-lg text-left transition-colors hover:text-emerald-400 outline-none ${
                                             isExerciseComplete ? 'text-zinc-500 line-through' : 'text-white'
                                           }`}
@@ -501,7 +505,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                     )}
 
                                     <button 
-                                      onClick={() => toggleExerciseVisual(ex.name, uniqueKey)}
+                                      onClick={() => toggleExerciseDetails(uniqueKey)}
                                       className={`text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${
                                         isVisualExpanded 
                                         ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' 
@@ -511,6 +515,18 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                       {isVisualExpanded ? <Eye className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
                                       {isVisualExpanded ? 'Hide' : 'Details'}
                                     </button>
+
+                                    {(ex.videoUrl || ex.name) && !isExerciseComplete && (
+                                      <a 
+                                        href={ex.videoUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + ' exercise tutorial')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-blue-400 hover:border-blue-500 transition-all"
+                                      >
+                                        <Video className="w-3 h-3" /> Video
+                                      </a>
+                                    )}
                                   </div>
                                 </div>
                                 
@@ -530,6 +546,66 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                   </div>
                                 </div>
                               </div>
+
+                              {isVisualExpanded && (
+                                <div className="border-t border-zinc-800/50 bg-black/20 p-4 animate-fadeIn">
+                                  <div className="flex flex-col md:flex-row gap-6">
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <h5 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Form Instructions</h5>
+                                        {!visualUrl && !isLoadingVisual && (
+                                           <button 
+                                              onClick={() => handleGenerateVisual(ex.name)}
+                                              className="text-[10px] flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all"
+                                           >
+                                              <Sparkles className="w-2.5 h-2.5" /> Generate AI Visual
+                                           </button>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-zinc-300 leading-relaxed mb-4">
+                                        {ex.instructions || "Maintain proper alignment and control throughout the movement."}
+                                      </p>
+                                      
+                                      {ex.notes && (
+                                        <div className="bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-800/50">
+                                          <span className="block text-[10px] text-zinc-500 uppercase font-bold mb-1">Coach's Notes</span>
+                                          <p className="text-xs text-zinc-400">{ex.notes}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="w-full md:w-48 aspect-square bg-zinc-900 rounded-lg flex items-center justify-center border border-zinc-800 overflow-hidden relative group shrink-0">
+                                      {isLoadingVisual ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                          <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                                          <span className="text-[10px] text-zinc-500">AI Rendering...</span>
+                                        </div>
+                                      ) : visualUrl ? (
+                                        <div className="relative w-full h-full">
+                                          <img 
+                                            src={visualUrl} 
+                                            alt={ex.name} 
+                                            className="w-full h-full object-cover opacity-90 transition-opacity hover:opacity-100" 
+                                          />
+                                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                                            <span className="text-[10px] text-white/80">AI Visual Guide</span>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-center p-4">
+                                          <ImageIcon className="w-6 h-6 text-zinc-700 mx-auto mb-2" />
+                                          <p className="text-[10px] text-zinc-600 mb-3">No visual guide available</p>
+                                          <button 
+                                            onClick={() => handleGenerateVisual(ex.name)}
+                                            className="text-[10px] w-full py-1.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-1"
+                                          >
+                                            <Sparkles className="w-3 h-3" /> Generate Guide
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -589,7 +665,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
 
       {showCompletionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl scale-100 animate-in fade-in zoom-in duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-md w-full shadow-2xl scale-100 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <Trophy className="w-6 h-6 text-yellow-500" /> Workout Complete!
