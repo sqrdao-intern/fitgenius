@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { UserProfile, WorkoutCurriculum } from "../types";
+import { UserProfile, WorkoutCurriculum, Exercise } from "../types";
 
 // Helper function to validate environment variable
 const getApiKey = (): string => {
@@ -114,6 +114,53 @@ export const generateWorkoutPlan = async (profile: UserProfile): Promise<Workout
   }
 };
 
+export const getExerciseAlternatives = async (originalExerciseName: string, equipment: string[]): Promise<Exercise[]> => {
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
+
+  const prompt = `
+    The user wants to swap out the exercise "${originalExerciseName}".
+    Suggest 3 alternative exercises that target the same primary muscle groups and movement patterns.
+    The user has access to the following equipment: ${equipment.length > 0 ? equipment.join(', ') : 'Bodyweight Only'}.
+    
+    Provide specific sets, reps, and rest periods appropriate for general fitness/hypertrophy.
+    Keep instructions concise (max 30 words).
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              sets: { type: Type.STRING },
+              reps: { type: Type.STRING },
+              rest: { type: Type.STRING },
+              notes: { type: Type.STRING, description: "Why is this a good alternative?" },
+              instructions: { type: Type.STRING },
+              videoUrl: { type: Type.STRING }
+            },
+            required: ["name", "sets", "reps", "rest", "instructions"]
+          }
+        }
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(response.text) as Exercise[];
+    }
+    return [];
+  } catch (error) {
+    console.error("Error generating alternatives:", error);
+    return [];
+  }
+};
+
 export const generateExerciseVisualization = async (exerciseName: string): Promise<string | null> => {
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
   try {
@@ -143,5 +190,50 @@ export const generateExerciseVisualization = async (exerciseName: string): Promi
   } catch (e) {
     console.error("Failed to generate exercise image", e);
     return null;
+  }
+};
+
+export const analyzeWorkoutImage = async (base64Image: string): Promise<{
+  activityType: string;
+  duration: string;
+  calories: number;
+  summary: string;
+}> => {
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
+  
+  // Note: Using gemini-2.5-flash-image which supports multimodal input but does not support responseSchema
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'image/jpeg',
+              data: base64Image
+            }
+          },
+          {
+            text: `Analyze this image of a workout summary (e.g. from Strava, Garmin, Apple Health). 
+            Extract the following details and return them in a strict JSON format (do not include markdown code blocks):
+            {
+              "activityType": "The type of activity (e.g. Running, Pickleball, Yoga)",
+              "duration": "Duration in a readable format (e.g. 45 mins, 1h 20m)",
+              "calories": 0 (Integer estimate of calories burned, or 0 if not found),
+              "summary": "A short 1-sentence summary of the performance (e.g. 'Great pace on your 5k run' or 'Solid 1 hour pickleball session')"
+            }`
+          }
+        ]
+      }
+    });
+
+    const text = response.text || "";
+    // Clean markdown code blocks if present
+    const cleanJson = text.replace(/```json|```/g, '').trim();
+    
+    return JSON.parse(cleanJson);
+  } catch (e) {
+    console.error("Failed to analyze workout image", e);
+    throw new Error("Could not analyze image. Please fill details manually.");
   }
 };

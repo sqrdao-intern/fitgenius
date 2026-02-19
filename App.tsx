@@ -296,6 +296,7 @@ const App: React.FC = () => {
             onAddProgress={handleAddProgress}
             workoutLogs={workoutLogs}
             onLogWorkout={handleLogWorkout}
+            userProfile={profile}
           />
         )}
       </main>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { WorkoutCurriculum, ProgressEntry, WorkoutLog } from '../types';
-import { generateExerciseVisualization } from '../services/geminiService';
+import { WorkoutCurriculum, ProgressEntry, WorkoutLog, Exercise, UserProfile } from '../types';
+import { generateExerciseVisualization, getExerciseAlternatives } from '../services/geminiService';
 import ProgressTracker from './ProgressTracker';
 import { 
   Calendar, 
@@ -29,6 +29,8 @@ import {
   Sparkles,
   GripVertical,
   Share2,
+  Shuffle,
+  Info
 } from 'lucide-react';
 
 interface PlanDisplayProps {
@@ -43,6 +45,7 @@ interface PlanDisplayProps {
   onAddProgress: (entry: ProgressEntry) => void;
   workoutLogs: WorkoutLog[];
   onLogWorkout: (log: WorkoutLog) => void;
+  userProfile: UserProfile | null;
 }
 
 interface WorkoutSummaryData {
@@ -77,7 +80,8 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
   progressHistory,
   onAddProgress,
   workoutLogs,
-  onLogWorkout
+  onLogWorkout,
+  userProfile
 }) => {
   const [activeWeek, setActiveWeek] = useState<number>(0);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
@@ -92,6 +96,11 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
   // Summary Screen State
   const [workoutSummary, setWorkoutSummary] = useState<WorkoutSummaryData | null>(null);
   const [showCopiedToast, setShowCopiedToast] = useState(false);
+
+  // Swap Exercise State
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [swapCandidates, setSwapCandidates] = useState<Exercise[]>([]);
+  const [targetSwapIndex, setTargetSwapIndex] = useState<{w: number, d: number, e: number} | null>(null);
 
   const [timer, setTimer] = useState<{
     isActive: boolean;
@@ -269,6 +278,45 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
 
     onUpdatePlan(newPlan);
     setDraggedItem(null);
+  };
+
+  // Swap Logic
+  const initiateSwap = async (weekIdx: number, dayIdx: number, exIdx: number, exerciseName: string) => {
+    setTargetSwapIndex({w: weekIdx, d: dayIdx, e: exIdx});
+    setIsSwapping(true);
+    setSwapCandidates([]); 
+    
+    // Fallback if profile is missing
+    const equipment = userProfile?.equipment.map(e => e.toString()) || ['Bodyweight Only'];
+    
+    try {
+        const alternatives = await getExerciseAlternatives(exerciseName, equipment);
+        setSwapCandidates(alternatives);
+    } catch (e) {
+        console.error(e);
+        setIsSwapping(false);
+        setTargetSwapIndex(null);
+        alert("Failed to find alternatives. Please try again.");
+    }
+  };
+
+  const confirmSwap = (newExercise: Exercise) => {
+     if (!targetSwapIndex) return;
+     const {w, d, e} = targetSwapIndex;
+     
+     const newPlan = JSON.parse(JSON.stringify(plan));
+     // Replace the exercise
+     newPlan.weeks[w].schedule[d].exercises[e] = newExercise;
+     
+     onUpdatePlan(newPlan);
+     
+     // Optionally pre-fetch visual for new exercise
+     handleGenerateVisual(newExercise.name); 
+     
+     // Close modal
+     setIsSwapping(false);
+     setTargetSwapIndex(null);
+     setSwapCandidates([]);
   };
 
   const getDayDate = (weekIdx: number, dayIdx: number) => {
@@ -650,6 +698,16 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                         {isVisualExpanded ? 'Hide' : 'Details'}
                                       </button>
 
+                                      {!isExerciseComplete && (
+                                         <button 
+                                            onClick={() => initiateSwap(activeWeek, dayIdx, exIdx, ex.name)}
+                                            className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-purple-400 hover:border-purple-500 transition-all"
+                                            title="Swap Exercise"
+                                         >
+                                            <Shuffle className="w-3 h-3" /> Swap
+                                         </button>
+                                      )}
+
                                       {(ex.videoUrl || ex.name) && !isExerciseComplete && (
                                         <a 
                                           href={ex.videoUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + ' exercise tutorial')}`}
@@ -759,6 +817,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
             onAddEntry={onAddProgress} 
             completedWorkoutCount={completedCount}
             workoutLogs={workoutLogs}
+            onLogWorkout={onLogWorkout}
           />
           
            <button 
@@ -822,6 +881,70 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
               <button onClick={() => confirmCompletion(true)} className="px-4 py-3 rounded-xl bg-emerald-500 text-black font-bold text-sm flex items-center justify-center gap-2">Log & Finish <ArrowRight className="w-4 h-4" /></button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Swap Modal */}
+      {isSwapping && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200">
+                <div className="p-6 border-b border-zinc-800 flex items-center justify-between sticky top-0 bg-zinc-950 rounded-t-2xl z-10">
+                    <div>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                           <Shuffle className="w-5 h-5 text-purple-400" /> Swap Exercise
+                        </h3>
+                        <p className="text-zinc-400 text-xs mt-1">Select an alternative exercise for your plan.</p>
+                    </div>
+                    <button 
+                       onClick={() => setIsSwapping(false)}
+                       className="p-2 hover:bg-zinc-900 rounded-full transition-colors text-zinc-500 hover:text-white"
+                    >
+                       <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="p-6 overflow-y-auto custom-scrollbar">
+                    {swapCandidates.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <Loader2 className="w-8 h-8 text-purple-500 animate-spin mb-4" />
+                            <p className="text-zinc-400 text-sm">Finding best alternatives based on your equipment...</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4">
+                            {swapCandidates.map((candidate, idx) => (
+                                <div key={idx} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:border-purple-500/50 transition-all group">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h4 className="font-bold text-white text-lg">{candidate.name}</h4>
+                                        <button 
+                                            onClick={() => confirmSwap(candidate)}
+                                            className="px-3 py-1.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-sm font-medium hover:bg-purple-500 hover:text-white transition-all"
+                                        >
+                                            Select
+                                        </button>
+                                    </div>
+                                    <p className="text-zinc-400 text-sm mb-3">{candidate.notes}</p>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                                        <div className="bg-black/30 p-2 rounded border border-zinc-800/50">
+                                            <span className="text-zinc-500 block mb-0.5">Sets/Reps</span>
+                                            <span className="text-zinc-200 font-mono">{candidate.sets} x {candidate.reps}</span>
+                                        </div>
+                                        <div className="bg-black/30 p-2 rounded border border-zinc-800/50">
+                                            <span className="text-zinc-500 block mb-0.5">Rest</span>
+                                            <span className="text-zinc-200 font-mono">{candidate.rest}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-2 bg-zinc-950/50 p-2 rounded-lg border border-zinc-800/30">
+                                        <Info className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
+                                        <p className="text-xs text-zinc-400">{candidate.instructions}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
       )}
 

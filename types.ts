@@ -85,9 +85,11 @@ export interface ProgressEntry {
 export interface WorkoutLog {
   id: string;
   date: string;
-  dayId: string;
-  dayName: string;
-  focus: string;
+  dayId?: string; // Optional for custom activities
+  dayName: string; // Activity Name for custom activities
+  focus: string; // Type/Category for custom activities
   duration: string;
   notes?: string;
+  imageUrl?: string;
+  calories?: number;
 }
