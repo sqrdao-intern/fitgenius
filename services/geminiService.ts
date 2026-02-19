@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { UserProfile, WorkoutCurriculum, Exercise } from "../types";
 
@@ -176,7 +175,13 @@ export const generateExerciseVisualization = async (exerciseName: string): Promi
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [{
-          text: `Generate a minimalist, high-contrast white-line vector art illustration on a solid black background showing the exercise: "${exerciseName}". The style should be simple, clean, and instructional.`
+          text: `Create a high-quality, minimalist vector art illustration of the exercise "${exerciseName}". 
+          The style must be:
+          - White lines on a solid black background (#000000).
+          - Flat design, no shading, no gradients.
+          - Instructional: clearly show the body mechanics and form.
+          - Aspect ratio 1:1.
+          - Do not include any text inside the image.`
         }]
       },
       config: {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { WorkoutCurriculum, ProgressEntry, WorkoutLog, Exercise, UserProfile } from '../types';
 import { generateExerciseVisualization, getExerciseAlternatives } from '../services/geminiService';
@@ -149,8 +148,14 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
     setExpandedDay(expandedDay === dayKey ? null : dayKey);
   };
 
-  const toggleExerciseDetails = (uniqueKey: string) => {
-    setExpandedExercises(prev => ({ ...prev, [uniqueKey]: !prev[uniqueKey] }));
+  const toggleExerciseDetails = (uniqueKey: string, exerciseName: string) => {
+    setExpandedExercises(prev => {
+      const isExpanded = !prev[uniqueKey];
+      if (isExpanded && !visuals[exerciseName] && !loadingVisuals[exerciseName]) {
+        setTimeout(() => handleGenerateVisual(exerciseName), 0);
+      }
+      return { ...prev, [uniqueKey]: isExpanded };
+    });
   };
 
   const handleGenerateVisual = async (exerciseName: string) => {
@@ -653,7 +658,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                         </button>
                                         <div className="flex flex-wrap items-center gap-2">
                                           <button
-                                            onClick={() => toggleExerciseDetails(uniqueKey)}
+                                            onClick={() => toggleExerciseDetails(uniqueKey, ex.name)}
                                             className={`font-medium text-lg text-left transition-colors hover:text-emerald-400 outline-none ${
                                               isExerciseComplete ? 'text-zinc-500 line-through' : 'text-white'
                                             }`}
@@ -694,7 +699,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                       )}
 
                                       <button 
-                                        onClick={() => toggleExerciseDetails(uniqueKey)}
+                                        onClick={() => toggleExerciseDetails(uniqueKey, ex.name)}
                                         className={`text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${
                                           isVisualExpanded 
                                           ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' 
@@ -758,7 +763,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                               onClick={() => handleGenerateVisual(ex.name)}
                                               className="text-[10px] flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all"
                                            >
-                                              <Sparkles className="w-2.5 h-2.5" /> {t('plan.generateVisual')}
+                                              <RefreshCw className="w-2.5 h-2.5" /> Regenerate
                                            </button>
                                         )}
                                       </div>
@@ -798,7 +803,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                             onClick={() => handleGenerateVisual(ex.name)}
                                             className="text-[10px] w-full py-1.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-1"
                                           >
-                                            <Sparkles className="w-3 h-3" /> {t('plan.generateGuide')}
+                                            <RefreshCw className="w-3 h-3" /> Retry
                                           </button>
                                         </div>
                                       )}
