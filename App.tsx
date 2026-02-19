@@ -5,7 +5,8 @@ import { generateWorkoutPlan } from './services/geminiService';
 import Onboarding from './components/Onboarding';
 import PlanDisplay from './components/PlanDisplay';
 import Landing from './components/Landing';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Globe } from 'lucide-react';
+import { useLanguage } from './contexts/LanguageContext';
 
 const STORAGE_KEYS = {
   PROFILE: 'fitgenius_profile',
@@ -37,6 +38,8 @@ const LogoIcon = ({ className }: { className?: string }) => (
 );
 
 const App: React.FC = () => {
+  const { t, language, setLanguage } = useLanguage();
+
   const [profile, setProfile] = useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PROFILE);
@@ -114,7 +117,7 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const generatedPlan = await generateWorkoutPlan(userProfile);
+      const generatedPlan = await generateWorkoutPlan(userProfile, language);
       
       // Calculate Monday of the NEXT week (fresh start)
       const now = new Date();
@@ -138,14 +141,14 @@ const App: React.FC = () => {
       setWorkoutLogs([]);
     } catch (err: any) {
       console.error(err);
-      setError("Failed to generate plan. Please try again. Ensure you have a valid API Key.");
+      setError(t('common.error'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    if (window.confirm("Are you sure? This will delete your current plan and progress.")) {
+    if (window.confirm(t('plan.confirmReset'))) {
       setPlan(null);
       setCompletedDays([]);
       setCompletedExercises([]);
@@ -246,9 +249,16 @@ const App: React.FC = () => {
               <span className="font-bold text-xl tracking-tight">FitGenius<span className="text-emerald-500">.ai</span></span>
             </div>
             <div className="flex items-center gap-4 text-sm font-medium">
-               <span className="hidden sm:inline text-zinc-500">Curriculum v1.3</span>
+               <button 
+                 onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')}
+                 className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
+                 title="Switch Language"
+               >
+                 <Globe className="w-4 h-4" />
+                 <span className="uppercase">{language}</span>
+               </button>
                <div className="h-4 w-[1px] bg-zinc-800 hidden sm:block"></div>
-               <span className="text-zinc-400">Personalized Home Fitness</span>
+               <span className="hidden sm:inline text-zinc-500">v1.3</span>
             </div>
           </div>
         </div>
@@ -287,7 +297,9 @@ const App: React.FC = () => {
             {loading && (
               <div className="mt-8 flex flex-col items-center animate-pulse">
                 <Sparkles className="w-6 h-6 text-emerald-400 mb-2 animate-spin-slow" />
-                <p className="text-zinc-500 text-sm">Analyzing metrics & designing curriculum...</p>
+                <p className="text-zinc-500 text-sm">
+                  {language === 'vi' ? 'Đang phân tích chỉ số & thiết kế giáo trình...' : 'Analyzing metrics & designing curriculum...'}
+                </p>
               </div>
             )}
           </div>
@@ -308,7 +320,7 @@ const App: React.FC = () => {
             <p className="text-xs text-zinc-500">
               © {new Date().getFullYear()} FitGenius AI. All rights reserved. 
               <span className="hidden sm:inline mx-1">•</span> 
-              Powered by Google Gemini.
+              {t('common.poweredBy')}.
             </p>
             <p className="text-xs text-zinc-600 mt-1">
               Created by <a href="https://github.com/sqrdao-intern" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-emerald-500 transition-colors">sqrdao-intern</a>

@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Gender, Goal, ExperienceLevel, Equipment } from '../types';
 import { ChevronRight, ChevronLeft, Activity, Target, Dumbbell, Calendar, ChevronDown } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => void;
@@ -8,14 +10,8 @@ interface OnboardingProps {
   initialProfile?: UserProfile;
 }
 
-const steps = [
-  { id: 1, title: 'Biometrics', icon: Activity },
-  { id: 2, title: 'Goals & Level', icon: Target },
-  { id: 3, title: 'Equipment', icon: Dumbbell },
-  { id: 4, title: 'Schedule', icon: Calendar },
-];
-
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialProfile }) => {
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
   const [profile, setProfile] = useState<UserProfile>({
     age: 25,
@@ -29,6 +25,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
     durationPerSession: 45,
     injuries: ''
   });
+
+  const steps = [
+    { id: 1, title: t('onboarding.biometrics'), icon: Activity },
+    { id: 2, title: t('onboarding.goals'), icon: Target },
+    { id: 3, title: t('onboarding.equipment'), icon: Dumbbell },
+    { id: 4, title: t('onboarding.schedule'), icon: Calendar },
+  ];
 
   useEffect(() => {
     if (initialProfile) {
@@ -81,9 +84,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
       <div className="bg-zinc-950 p-6 border-b border-zinc-800">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-white">
-            {initialProfile ? 'Update Your Plan' : 'Create Your Plan'}
+            {initialProfile ? t('onboarding.updateTitle') : t('onboarding.title')}
           </h2>
-          <span className="text-zinc-400 text-sm">Step {currentStep} of {steps.length}</span>
+          <span className="text-zinc-400 text-sm">{t('common.step')} {currentStep} {t('common.of')} {steps.length}</span>
         </div>
         <div className="flex gap-2">
           {steps.map(step => (
@@ -100,12 +103,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
         {currentStep === 1 && (
           <div className="space-y-6 animate-fadeIn">
             <h3 className="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5" /> About You
+              <Activity className="w-5 h-5" /> {t('onboarding.biometrics')}
             </h3>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Age</label>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">{t('onboarding.age')}</label>
                 <input 
                   type="number" 
                   value={profile.age} 
@@ -114,20 +117,20 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Gender</label>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">{t('onboarding.gender')}</label>
                 <div className="relative">
                   <select 
                     value={profile.gender}
                     onChange={(e) => updateProfile('gender', e.target.value)}
                     className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none pr-10"
                   >
-                    {Object.values(Gender).map(g => <option key={g} value={g}>{g}</option>)}
+                    {Object.values(Gender).map(g => <option key={g} value={g}>{t(`enums.${g}`)}</option>)}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Height (cm)</label>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">{t('onboarding.height')}</label>
                 <input 
                   type="number" 
                   value={profile.height} 
@@ -136,7 +139,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Weight (kg)</label>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">{t('onboarding.weight')}</label>
                 <input 
                   type="number" 
                   value={profile.weight} 
@@ -146,10 +149,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
               </div>
             </div>
             <div>
-               <label className="block text-sm font-medium text-zinc-400 mb-1">Injuries / Limitations (Optional)</label>
+               <label className="block text-sm font-medium text-zinc-400 mb-1">{t('onboarding.injuries')}</label>
                <input 
                   type="text" 
-                  placeholder="e.g. Bad knees, lower back pain"
+                  placeholder={t('onboarding.injuriesPlaceholder')}
                   value={profile.injuries || ''} 
                   onChange={(e) => updateProfile('injuries', e.target.value)}
                   className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
@@ -161,11 +164,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
         {currentStep === 2 && (
           <div className="space-y-6 animate-fadeIn">
             <h3 className="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2">
-              <Target className="w-5 h-5" /> Goals & Experience
+              <Target className="w-5 h-5" /> {t('onboarding.goals')}
             </h3>
             
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-3">Primary Goal</label>
+              <label className="block text-sm font-medium text-zinc-400 mb-3">{t('onboarding.primaryGoal')}</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {Object.values(Goal).map(goal => (
                   <button
@@ -177,14 +180,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
                       : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-750'
                     }`}
                   >
-                    {goal}
+                    {t(`enums.${goal}`)}
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-3">Experience Level</label>
+              <label className="block text-sm font-medium text-zinc-400 mb-3">{t('onboarding.experienceLevel')}</label>
               <div className="flex gap-3">
                 {Object.values(ExperienceLevel).map(level => (
                   <button
@@ -196,7 +199,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
                       : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-750'
                     }`}
                   >
-                    {level}
+                    {t(`enums.${level}`)}
                   </button>
                 ))}
               </div>
@@ -207,7 +210,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
         {currentStep === 3 && (
           <div className="space-y-6 animate-fadeIn">
             <h3 className="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2">
-              <Dumbbell className="w-5 h-5" /> Available Equipment
+              <Dumbbell className="w-5 h-5" /> {t('onboarding.equipment')}
             </h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -227,7 +230,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
                     {profile.equipment.includes(eq) && <div className="w-1.5 h-1.5 bg-black rounded-sm" />}
                   </div>
                   <span className={`text-sm ${profile.equipment.includes(eq) ? 'text-white font-medium' : 'text-zinc-400'}`}>
-                    {eq}
+                    {t(`enums.${eq}`)}
                   </span>
                 </div>
               ))}
@@ -238,11 +241,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
         {currentStep === 4 && (
           <div className="space-y-6 animate-fadeIn">
             <h3 className="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5" /> Commitment
+              <Calendar className="w-5 h-5" /> {t('onboarding.schedule')}
             </h3>
             
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Days Per Week: <span className="text-white text-lg ml-2">{profile.daysPerWeek}</span></label>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">{t('onboarding.daysPerWeek')}: <span className="text-white text-lg ml-2">{profile.daysPerWeek}</span></label>
               <input 
                 type="range" 
                 min="1" 
@@ -252,13 +255,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
                 className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
               <div className="flex justify-between text-xs text-zinc-500 mt-2">
-                <span>1 Day</span>
-                <span>7 Days</span>
+                <span>1 {t('onboarding.days')}</span>
+                <span>7 {t('onboarding.days')}</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Duration (Minutes): <span className="text-white text-lg ml-2">{profile.durationPerSession}</span></label>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">{t('onboarding.duration')}: <span className="text-white text-lg ml-2">{profile.durationPerSession}</span></label>
               <input 
                 type="range" 
                 min="15" 
@@ -269,8 +272,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
                 className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
               <div className="flex justify-between text-xs text-zinc-500 mt-2">
-                <span>15 min</span>
-                <span>120 min</span>
+                <span>15 {t('onboarding.min')}</span>
+                <span>120 {t('onboarding.min')}</span>
               </div>
             </div>
           </div>
@@ -288,7 +291,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
             : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
           }`}
         >
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {t('common.back')}
         </button>
         
         <button 
@@ -297,10 +300,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading, initialP
           className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(16,185,129,0.4)]"
         >
           {isLoading ? (
-            'Generating...'
+            t('onboarding.generating')
           ) : (
             <>
-              {currentStep === steps.length ? 'Generate Plan' : 'Next Step'} 
+              {currentStep === steps.length ? t('onboarding.generate') : t('onboarding.nextStep')} 
               {!isLoading && currentStep !== steps.length && <ChevronRight className="w-4 h-4" />}
             </>
           )}

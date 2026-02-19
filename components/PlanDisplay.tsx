@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { WorkoutCurriculum, ProgressEntry, WorkoutLog, Exercise, UserProfile } from '../types';
 import { generateExerciseVisualization, getExerciseAlternatives } from '../services/geminiService';
 import ProgressTracker from './ProgressTracker';
+import { useLanguage } from '../contexts/LanguageContext';
 import { 
   Calendar, 
   Clock, 
@@ -83,6 +84,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
   onLogWorkout,
   userProfile
 }) => {
+  const { t, language } = useLanguage();
   const [activeWeek, setActiveWeek] = useState<number>(0);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
@@ -290,7 +292,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
     const equipment = userProfile?.equipment.map(e => e.toString()) || ['Bodyweight Only'];
     
     try {
-        const alternatives = await getExerciseAlternatives(exerciseName, equipment);
+        const alternatives = await getExerciseAlternatives(exerciseName, equipment, language);
         setSwapCandidates(alternatives);
     } catch (e) {
         console.error(e);
@@ -387,13 +389,13 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                   className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg text-sm transition-all"
                >
                   <Share2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Share Progress</span>
+                  <span className="hidden sm:inline">{t('plan.share')}</span>
                </button>
                <button 
                   onClick={onReset}
                   className="hidden md:flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm transition-all border border-zinc-700 hover:border-zinc-600"
                >
-                  <RefreshCw className="w-4 h-4" /> New Plan
+                  <RefreshCw className="w-4 h-4" /> {t('plan.newPlan')}
                </button>
              </div>
           </div>
@@ -402,7 +404,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
              <div className="flex justify-between items-end mb-2">
                 <div className="flex items-center gap-2 text-emerald-400 font-medium">
                    <Trophy className="w-5 h-5" />
-                   <span>Current Progress</span>
+                   <span>{t('plan.currentProgress')}</span>
                 </div>
                 <span className="text-2xl font-bold text-white">{progressPercentage}%</span>
              </div>
@@ -413,7 +415,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                 />
              </div>
              <div className="text-right mt-1 text-xs text-zinc-500">
-                {completedCount} of {totalWorkouts} sessions completed
+                {completedCount} {t('common.of')} {totalWorkouts} {t('plan.sessions')} {t('plan.completed')}
              </div>
           </div>
           
@@ -423,8 +425,8 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                 <Calendar className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs text-zinc-400">Duration</p>
-                <p className="font-semibold text-white">{plan.weeks.length} Weeks</p>
+                <p className="text-xs text-zinc-400">{t('plan.duration')}</p>
+                <p className="font-semibold text-white">{plan.weeks.length} {t('plan.weeks')}</p>
               </div>
             </div>
             <div className="bg-black/20 backdrop-blur-sm p-3 rounded-xl border border-white/5 flex items-center gap-3">
@@ -432,7 +434,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                 <Flame className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs text-zinc-400">Week Focus</p>
+                <p className="text-xs text-zinc-400">{t('plan.weekFocus')}</p>
                 <p className="font-semibold text-white text-sm leading-tight">{currentWeekPlan.focus}</p>
               </div>
             </div>
@@ -441,9 +443,9 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                 <Dumbbell className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs text-zinc-400">Total Workouts</p>
+                <p className="text-xs text-zinc-400">{t('plan.totalWorkouts')}</p>
                 <p className="font-semibold text-white">
-                  {totalWorkouts} Sessions
+                  {totalWorkouts} {t('plan.sessions')}
                 </p>
               </div>
             </div>
@@ -465,7 +467,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
               const weekStartDate = getDayDate(idx, 0);
               const weekEndDate = getDayDate(idx, 6);
               const dateRange = weekStartDate && weekEndDate 
-                 ? `${weekStartDate.toLocaleDateString(undefined, {month:'short', day:'numeric'})} - ${weekEndDate.toLocaleDateString(undefined, {month:'short', day:'numeric'})}`
+                 ? `${weekStartDate.toLocaleDateString(language === 'vi' ? 'vi-VN' : undefined, {month:'short', day:'numeric'})} - ${weekEndDate.toLocaleDateString(language === 'vi' ? 'vi-VN' : undefined, {month:'short', day:'numeric'})}`
                  : '';
 
               return (
@@ -479,7 +481,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                 }`}
               >
                 <div className="flex flex-col items-start">
-                   <span className="leading-none">Week {week.weekNumber}</span>
+                   <span className="leading-none">{t('plan.weeks')} {week.weekNumber}</span>
                    {dateRange && <span className={`text-[10px] font-normal leading-none mt-1 opacity-70`}>{dateRange}</span>}
                 </div>
                 {isWeekComplete && <CheckCircle2 className={`w-3 h-3 ${activeWeek === idx ? 'text-black' : 'text-emerald-500'}`} />}
@@ -489,7 +491,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
 
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-emerald-500" /> Weekly Schedule
+              <Clock className="w-5 h-5 text-emerald-500" /> {t('plan.weeklySchedule')}
             </h3>
             
             {currentWeekPlan.schedule.map((day, dayIdx) => {
@@ -535,7 +537,12 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                       }`}>
                         {calendarDate && (
                            <>
-                              <span className="text-[10px] uppercase tracking-wider opacity-80">{day.dayName.substring(0, 3)}</span>
+                              <span className="text-[10px] uppercase tracking-wider opacity-80">
+                                {language === 'vi' 
+                                  ? ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][calendarDate.getDay()] 
+                                  : day.dayName.substring(0, 3)
+                                }
+                              </span>
                               <span className="text-xl leading-none">{calendarDate.getDate()}</span>
                            </>
                         )}
@@ -544,8 +551,8 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                       <div>
                         <h4 className={`font-semibold flex items-center gap-2 ${isRestDay ? 'text-zinc-500' : isCompleted ? 'text-emerald-400' : isToday ? 'text-white' : 'text-zinc-300'}`}>
                           {day.dayName}
-                          {isCompleted && <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Complete</span>}
-                          {isToday && !isCompleted && !isRestDay && <span className="text-xs px-2 py-0.5 rounded bg-emerald-500 text-black font-bold">Today</span>}
+                          {isCompleted && <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">{t('plan.completed')}</span>}
+                          {isToday && !isCompleted && !isRestDay && <span className="text-xs px-2 py-0.5 rounded bg-emerald-500 text-black font-bold">{t('plan.today')}</span>}
                         </h4>
                         <p className="text-sm text-zinc-400">{day.focus}</p>
                       </div>
@@ -555,7 +562,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                        {!isRestDay && (
                           <div className="flex items-center gap-3">
                              <div className="text-right hidden sm:block mr-2">
-                                <span className="text-xs text-zinc-500 block">Est. Time</span>
+                                <span className="text-xs text-zinc-500 block">{t('plan.estTime')}</span>
                                 <span className="text-sm text-zinc-300 font-medium">{day.estimatedDuration}</span>
                              </div>
                              
@@ -588,7 +595,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                         <div className="mt-4 bg-zinc-950/40 p-3 rounded-lg border border-zinc-800/50 flex items-center justify-between">
                            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-widest">
                               <ListTodo className="w-4 h-4 text-emerald-500" /> 
-                              {dayCompletedExCount} / {day.exercises.length} Exercises Done
+                              {dayCompletedExCount} / {day.exercises.length} {t('plan.exercisesDone')}
                            </div>
                            <div className="flex-1 max-w-[120px] h-1.5 bg-zinc-800 rounded-full mx-4 overflow-hidden">
                               <div 
@@ -682,7 +689,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                           onClick={() => startRestTimer(ex.rest, ex.name)}
                                           className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-emerald-400 hover:border-emerald-500 transition-all"
                                         >
-                                          <Timer className="w-3 h-3" /> Rest
+                                          <Timer className="w-3 h-3" /> {t('plan.rest')}
                                         </button>
                                       )}
 
@@ -695,7 +702,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                         }`}
                                       >
                                         {isVisualExpanded ? <Eye className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
-                                        {isVisualExpanded ? 'Hide' : 'Details'}
+                                        {isVisualExpanded ? t('plan.hide') : t('plan.details')}
                                       </button>
 
                                       {!isExerciseComplete && (
@@ -704,7 +711,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                             className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-purple-400 hover:border-purple-500 transition-all"
                                             title="Swap Exercise"
                                          >
-                                            <Shuffle className="w-3 h-3" /> Swap
+                                            <Shuffle className="w-3 h-3" /> {t('plan.swap')}
                                          </button>
                                       )}
 
@@ -716,7 +723,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                           onClick={(e) => e.stopPropagation()}
                                           className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-blue-400 hover:border-blue-500 transition-all"
                                         >
-                                          <Video className="w-3 h-3" /> Video
+                                          <Video className="w-3 h-3" /> {t('plan.video')}
                                         </a>
                                       )}
                                     </div>
@@ -729,12 +736,12 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                     : 'bg-zinc-900/50 border-zinc-800/50'
                                 }`}>
                                   <div className="text-center px-2 shrink-0">
-                                    <span className="block text-zinc-500 text-[10px] uppercase tracking-wider">Sets</span>
+                                    <span className="block text-zinc-500 text-[10px] uppercase tracking-wider">{t('plan.sets')}</span>
                                     <span className="text-white font-mono font-medium">{ex.sets}</span>
                                   </div>
                                   <div className="w-px h-8 bg-zinc-800"></div>
                                   <div className="text-center px-2 shrink-0">
-                                    <span className="block text-zinc-500 text-[10px] uppercase tracking-wider">Reps</span>
+                                    <span className="block text-zinc-500 text-[10px] uppercase tracking-wider">{t('plan.reps')}</span>
                                     <span className="text-white font-mono font-medium">{ex.reps}</span>
                                   </div>
                                 </div>
@@ -745,13 +752,13 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                   <div className="flex flex-col md:flex-row gap-6">
                                     <div className="flex-1">
                                       <div className="flex items-center justify-between mb-2">
-                                        <h5 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Form Instructions</h5>
+                                        <h5 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">{t('plan.formInstructions')}</h5>
                                         {!visualUrl && !isLoadingVisual && (
                                            <button 
                                               onClick={() => handleGenerateVisual(ex.name)}
                                               className="text-[10px] flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all"
                                            >
-                                              <Sparkles className="w-2.5 h-2.5" /> Generate AI Visual
+                                              <Sparkles className="w-2.5 h-2.5" /> {t('plan.generateVisual')}
                                            </button>
                                         )}
                                       </div>
@@ -761,7 +768,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                       
                                       {ex.notes && (
                                         <div className="bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-800/50">
-                                          <span className="block text-[10px] text-zinc-500 uppercase font-bold mb-1">Coach's Notes</span>
+                                          <span className="block text-[10px] text-zinc-500 uppercase font-bold mb-1">{t('plan.coachNotes')}</span>
                                           <p className="text-xs text-zinc-400">{ex.notes}</p>
                                         </div>
                                       )}
@@ -770,7 +777,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                       {isLoadingVisual ? (
                                         <div className="flex flex-col items-center gap-2">
                                           <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
-                                          <span className="text-[10px] text-zinc-500">AI Rendering...</span>
+                                          <span className="text-[10px] text-zinc-500">{t('plan.aiRendering')}</span>
                                         </div>
                                       ) : visualUrl ? (
                                         <div className="relative w-full h-full">
@@ -786,12 +793,12 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                       ) : (
                                         <div className="text-center p-4">
                                           <ImageIcon className="w-6 h-6 text-zinc-700 mx-auto mb-2" />
-                                          <p className="text-[10px] text-zinc-600 mb-3">No visual guide available</p>
+                                          <p className="text-[10px] text-zinc-600 mb-3">{t('plan.noVisual')}</p>
                                           <button 
                                             onClick={() => handleGenerateVisual(ex.name)}
                                             className="text-[10px] w-full py-1.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-1"
                                           >
-                                            <Sparkles className="w-3 h-3" /> Generate Guide
+                                            <Sparkles className="w-3 h-3" /> {t('plan.generateGuide')}
                                           </button>
                                         </div>
                                       )}
@@ -824,7 +831,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                 onClick={onReset}
                 className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-sm transition-all border border-zinc-700 hover:border-zinc-600"
              >
-                <RefreshCw className="w-4 h-4" /> Reset Plan
+                <RefreshCw className="w-4 h-4" /> {t('plan.resetPlan')}
              </button>
         </div>
       </div>
@@ -835,7 +842,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-md w-full shadow-2xl scale-100 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Trophy className="w-6 h-6 text-yellow-500" /> Workout Complete!
+                <Trophy className="w-6 h-6 text-yellow-500" /> {t('plan.workoutComplete')}
               </h3>
               <button 
                 onClick={() => setShowCompletionModal(false)}
@@ -846,11 +853,11 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
             </div>
             
             <div className="space-y-4 mb-6">
-              <p className="text-zinc-400 text-sm">Great job crushing your session. Log any notes or biometrics below.</p>
+              <p className="text-zinc-400 text-sm">{t('plan.logPrompt')}</p>
               
               <div className="bg-black/40 p-3 rounded-xl border border-zinc-800">
                  <label className="text-xs text-zinc-500 mb-1 flex items-center gap-1">
-                    <Scale className="w-3 h-3" /> Body Weight (kg)
+                    <Scale className="w-3 h-3" /> {t('plan.logWeight')}
                  </label>
                  <input 
                     type="number" 
@@ -865,7 +872,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
 
               <div className="bg-black/40 p-3 rounded-xl border border-zinc-800">
                  <label className="text-xs text-zinc-500 mb-1 flex items-center gap-1">
-                    <MessageSquare className="w-3 h-3" /> Workout Notes
+                    <MessageSquare className="w-3 h-3" /> {t('plan.logNotes')}
                  </label>
                  <textarea 
                     placeholder="How did it feel? Any personal records?"
@@ -877,8 +884,8 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => confirmCompletion(false)} className="px-4 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium text-sm">Cancel</button>
-              <button onClick={() => confirmCompletion(true)} className="px-4 py-3 rounded-xl bg-emerald-500 text-black font-bold text-sm flex items-center justify-center gap-2">Log & Finish <ArrowRight className="w-4 h-4" /></button>
+              <button onClick={() => confirmCompletion(false)} className="px-4 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium text-sm">{t('common.cancel')}</button>
+              <button onClick={() => confirmCompletion(true)} className="px-4 py-3 rounded-xl bg-emerald-500 text-black font-bold text-sm flex items-center justify-center gap-2">{t('plan.logFinish')} <ArrowRight className="w-4 h-4" /></button>
             </div>
           </div>
         </div>
@@ -891,9 +898,9 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                 <div className="p-6 border-b border-zinc-800 flex items-center justify-between sticky top-0 bg-zinc-950 rounded-t-2xl z-10">
                     <div>
                         <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                           <Shuffle className="w-5 h-5 text-purple-400" /> Swap Exercise
+                           <Shuffle className="w-5 h-5 text-purple-400" /> {t('plan.swapTitle')}
                         </h3>
-                        <p className="text-zinc-400 text-xs mt-1">Select an alternative exercise for your plan.</p>
+                        <p className="text-zinc-400 text-xs mt-1">{t('plan.swapSubtitle')}</p>
                     </div>
                     <button 
                        onClick={() => setIsSwapping(false)}
@@ -907,7 +914,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                     {swapCandidates.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12">
                             <Loader2 className="w-8 h-8 text-purple-500 animate-spin mb-4" />
-                            <p className="text-zinc-400 text-sm">Finding best alternatives based on your equipment...</p>
+                            <p className="text-zinc-400 text-sm">{t('plan.findingAlt')}</p>
                         </div>
                     ) : (
                         <div className="grid gap-4">
@@ -919,18 +926,18 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                                             onClick={() => confirmSwap(candidate)}
                                             className="px-3 py-1.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-sm font-medium hover:bg-purple-500 hover:text-white transition-all"
                                         >
-                                            Select
+                                            {t('plan.select')}
                                         </button>
                                     </div>
                                     <p className="text-zinc-400 text-sm mb-3">{candidate.notes}</p>
                                     
                                     <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                                         <div className="bg-black/30 p-2 rounded border border-zinc-800/50">
-                                            <span className="text-zinc-500 block mb-0.5">Sets/Reps</span>
+                                            <span className="text-zinc-500 block mb-0.5">{t('plan.sets')}/{t('plan.reps')}</span>
                                             <span className="text-zinc-200 font-mono">{candidate.sets} x {candidate.reps}</span>
                                         </div>
                                         <div className="bg-black/30 p-2 rounded border border-zinc-800/50">
-                                            <span className="text-zinc-500 block mb-0.5">Rest</span>
+                                            <span className="text-zinc-500 block mb-0.5">{t('plan.rest')}</span>
                                             <span className="text-zinc-200 font-mono">{candidate.rest}</span>
                                         </div>
                                     </div>
@@ -959,8 +966,8 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                 <Trophy className="w-10 h-10 text-black fill-black" />
               </div>
               
-              <h2 className="text-3xl font-extrabold text-white mb-2">Workout Crushed!</h2>
-              <p className="text-zinc-400 mb-8">You're getting stronger every day.</p>
+              <h2 className="text-3xl font-extrabold text-white mb-2">{t('plan.workoutCrushed')}</h2>
+              <p className="text-zinc-400 mb-8">{t('plan.gettingStronger')}</p>
               
               <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 mb-6 text-left">
                  <h3 className="font-bold text-white text-lg mb-1">{workoutSummary.dayName}</h3>
@@ -970,19 +977,19 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                     <div className="bg-black/40 rounded-lg p-3 border border-zinc-800/50">
                        <Clock className="w-4 h-4 text-emerald-500 mb-2" />
                        <div className="text-lg font-bold text-white leading-none">{workoutSummary.duration}</div>
-                       <div className="text-[10px] text-zinc-500 mt-1">Duration</div>
+                       <div className="text-[10px] text-zinc-500 mt-1">{t('plan.duration')}</div>
                     </div>
                     <div className="bg-black/40 rounded-lg p-3 border border-zinc-800/50">
                        <Dumbbell className="w-4 h-4 text-blue-500 mb-2" />
                        <div className="text-lg font-bold text-white leading-none">{workoutSummary.exercisesCount}</div>
-                       <div className="text-[10px] text-zinc-500 mt-1">Exercises</div>
+                       <div className="text-[10px] text-zinc-500 mt-1">{t('plan.exercisesDone')}</div>
                     </div>
                     <div className="bg-black/40 rounded-lg p-3 border border-zinc-800/50">
                        <Scale className="w-4 h-4 text-orange-500 mb-2" />
                        <div className="text-lg font-bold text-white leading-none">
                          {workoutSummary.weightLogged ? workoutSummary.weightLogged : '--'}
                        </div>
-                       <div className="text-[10px] text-zinc-500 mt-1">Kg Logged</div>
+                       <div className="text-[10px] text-zinc-500 mt-1">Kg</div>
                     </div>
                  </div>
               </div>
@@ -990,7 +997,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
               {workoutSummary.notes && (
                 <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-4 mb-8 text-left">
                    <div className="flex items-center gap-2 text-zinc-500 mb-2 text-xs uppercase font-bold tracking-wider">
-                      <MessageSquare className="w-3 h-3" /> Coach's Notes Log
+                      <MessageSquare className="w-3 h-3" /> {t('plan.coachNotes')} Log
                    </div>
                    <p className="text-zinc-300 text-sm italic">"{workoutSummary.notes}"</p>
                 </div>
@@ -1000,7 +1007,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
                 onClick={() => setWorkoutSummary(null)}
                 className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)]"
               >
-                Back to Dashboard
+                {t('plan.backDashboard')}
               </button>
             </div>
           </div>
@@ -1011,7 +1018,7 @@ const PlanDisplay: React.FC<PlanDisplayProps> = ({
       {showCopiedToast && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-zinc-800 text-white px-4 py-2 rounded-lg shadow-xl border border-zinc-700 flex items-center gap-2 z-[70] animate-in fade-in slide-in-from-bottom-4">
             <Check className="w-4 h-4 text-emerald-500" />
-            <span className="text-sm font-medium">Copied to clipboard!</span>
+            <span className="text-sm font-medium">{t('plan.copied')}</span>
         </div>
       )}
     </div>

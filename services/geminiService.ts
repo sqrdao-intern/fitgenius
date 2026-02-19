@@ -12,8 +12,10 @@ const getApiKey = (): string => {
   return key;
 };
 
-export const generateWorkoutPlan = async (profile: UserProfile): Promise<WorkoutCurriculum> => {
+export const generateWorkoutPlan = async (profile: UserProfile, language: 'en' | 'vi' = 'en'): Promise<WorkoutCurriculum> => {
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
+  
+  const languageName = language === 'vi' ? 'Vietnamese' : 'English';
 
   const prompt = `
     Act as a world-class certified personal trainer and strength coach.
@@ -30,6 +32,9 @@ export const generateWorkoutPlan = async (profile: UserProfile): Promise<Workout
     - Time per session: ${profile.durationPerSession} minutes
     - Physical Limitations/Injuries: ${profile.injuries || "None"}
 
+    IMPORTANT: Generate the response content strictly in ${languageName} language.
+    This includes the program name, description, week focus, day names (e.g. "Thứ Hai" for Vietnamese), exercise instructions, and nutrition tips.
+    
     The plan should be progressive, meaning it gets slightly harder or changes focus over the 4 weeks.
     
     CRITICAL SCHEDULING RULE:
@@ -69,7 +74,7 @@ export const generateWorkoutPlan = async (profile: UserProfile): Promise<Workout
                     items: {
                       type: Type.OBJECT,
                       properties: {
-                        dayName: { type: Type.STRING, description: "Must be Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, or Sunday" },
+                        dayName: { type: Type.STRING, description: "Must be Monday, Tuesday... or equivalent in requested language" },
                         focus: { type: Type.STRING, description: "e.g. Legs & Core or Rest" },
                         estimatedDuration: { type: Type.STRING },
                         exercises: {
@@ -114,14 +119,17 @@ export const generateWorkoutPlan = async (profile: UserProfile): Promise<Workout
   }
 };
 
-export const getExerciseAlternatives = async (originalExerciseName: string, equipment: string[]): Promise<Exercise[]> => {
+export const getExerciseAlternatives = async (originalExerciseName: string, equipment: string[], language: 'en' | 'vi' = 'en'): Promise<Exercise[]> => {
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
+  const languageName = language === 'vi' ? 'Vietnamese' : 'English';
 
   const prompt = `
     The user wants to swap out the exercise "${originalExerciseName}".
     Suggest 3 alternative exercises that target the same primary muscle groups and movement patterns.
     The user has access to the following equipment: ${equipment.length > 0 ? equipment.join(', ') : 'Bodyweight Only'}.
     
+    IMPORTANT: Provide the response in ${languageName} language.
+
     Provide specific sets, reps, and rest periods appropriate for general fitness/hypertrophy.
     Keep instructions concise (max 30 words).
   `;
@@ -193,14 +201,15 @@ export const generateExerciseVisualization = async (exerciseName: string): Promi
   }
 };
 
-export const analyzeWorkoutImage = async (base64Image: string): Promise<{
+export const analyzeWorkoutImage = async (base64Image: string, language: 'en' | 'vi' = 'en'): Promise<{
   activityType: string;
   duration: string;
   calories: number;
   summary: string;
 }> => {
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
-  
+  const languageName = language === 'vi' ? 'Vietnamese' : 'English';
+
   // Note: Using gemini-2.5-flash-image which supports multimodal input but does not support responseSchema
   try {
     const response = await ai.models.generateContent({
@@ -215,7 +224,10 @@ export const analyzeWorkoutImage = async (base64Image: string): Promise<{
           },
           {
             text: `Analyze this image of a workout summary (e.g. from Strava, Garmin, Apple Health). 
-            Extract the following details and return them in a strict JSON format (do not include markdown code blocks):
+            Extract the following details and return them in a strict JSON format (do not include markdown code blocks).
+            
+            IMPORTANT: Return the "summary" and "activityType" values in ${languageName}.
+
             {
               "activityType": "The type of activity (e.g. Running, Pickleball, Yoga)",
               "duration": "Duration in a readable format (e.g. 45 mins, 1h 20m)",
