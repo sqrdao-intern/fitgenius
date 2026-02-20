@@ -1,9 +1,10 @@
 
-const CACHE_NAME = 'fitgenius-v1';
+const CACHE_NAME = 'fitgenius-v2';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -24,7 +25,7 @@ self.addEventListener('fetch', (event) => {
 
   // Don't cache API calls
   if (url.hostname.includes('googleapis') || url.hostname.includes('generativelanguage')) {
-      return;
+    return;
   }
 
   event.respondWith(
@@ -44,22 +45,22 @@ self.addEventListener('fetch', (event) => {
             }
 
             // Cache CDN resources (Tailwind, ESM.sh, Fonts)
-            const isCdnResource = 
-                url.hostname.includes('cdn.tailwindcss.com') || 
-                url.hostname.includes('esm.sh') ||
-                url.hostname.includes('fonts.googleapis.com') ||
-                url.hostname.includes('fonts.gstatic.com') ||
-                url.hostname.includes('unpkg.com');
+            const isCdnResource =
+              url.hostname.includes('cdn.tailwindcss.com') ||
+              url.hostname.includes('esm.sh') ||
+              url.hostname.includes('fonts.googleapis.com') ||
+              url.hostname.includes('fonts.gstatic.com') ||
+              url.hostname.includes('unpkg.com');
 
             // Cache same-origin resources
             const isSameOrigin = response.type === 'basic';
 
             if (isCdnResource || isSameOrigin) {
-                const responseToCache = response.clone();
-                caches.open(CACHE_NAME)
-                  .then((cache) => {
-                    cache.put(event.request, responseToCache);
-                  });
+              const responseToCache = response.clone();
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(event.request, responseToCache);
+                });
             }
 
             return response;
