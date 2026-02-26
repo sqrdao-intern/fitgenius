@@ -33,6 +33,8 @@ The app requires `GEMINI_API_KEY` set in `.env.local` at the project root. Vite 
 
 ### Gotchas
 
+- **Vite `define` only works in production build**: The `process.env.API_KEY` replacement via `vite.config.ts` `define` is applied during `npm run build` (Rollup) but **not** during `npm run dev` (esbuild). To test AI features with the real API key, use `npm run build && npx vite preview --port 3000 --host 0.0.0.0` instead of `npm run dev`.
+- **Service worker caching**: The app registers a PWA service worker (`sw.js`) that aggressively caches assets. When switching between dev and preview modes, the browser may serve stale cached content. Always use an **Incognito window** or clear site data (DevTools → Application → Storage → Clear site data) to avoid stale cache issues.
 - Tailwind CSS is loaded from CDN (`cdn.tailwindcss.com`), not installed locally. Internet access is required for styling to work.
 - All user data is stored in browser `localStorage`; there is no database.
 - The `.env.local` file is gitignored (via `*.local` pattern). Each environment must create its own.
